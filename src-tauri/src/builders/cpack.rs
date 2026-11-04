@@ -1,7 +1,7 @@
 use crate::*;
 
 pub fn build(mod_info: &mut ModInfo, pack_build: &str, output_path: &String) -> Result<(), Box<dyn std::error::Error>> {
-	println!("{}", "[OUCH] Sorry, KUBELOADER ContentPacks support isn't aviable yet. Check in newer versions: https://github.com/MAT-Services-ORG/mcmodinator/releases".bright_red());
+	println!("{}", "[OUCH] Sorry, KUBELOADER ContentPacks support isn't aviable yet. Check in newer versions: https://github.com/MAT-Services-ORG/mcmodinator/releases"); // ERROR HANDELING
 
 	println!("[INFO] Building KL ContentPack..."); // Create ZIP/JAR
 	let packfilename = match pack_build {
@@ -10,7 +10,7 @@ pub fn build(mod_info: &mut ModInfo, pack_build: &str, output_path: &String) -> 
 	};
 	let mut zip = ZipWriter::new(
 		File::create(&packfilename).map_err(|error| {
-			println!("{}", format!("[ERROR] {}", error).red());
+			println!("{}", format!("[ERROR] {}", error)); // ERROR HANDELING
 			io::Error::new(error.kind(), error)
 		})?
 	);
@@ -55,11 +55,11 @@ pub fn build(mod_info: &mut ModInfo, pack_build: &str, output_path: &String) -> 
 
 	match zip.finish() {
 		Ok(_) => {
-			println!("{}", format!("[DONE] Mod created at {packfilename}").green());
+			println!("{}", format!("[DONE] Mod created at {packfilename}")); // ERROR HANDELING
 			Ok(())
 		},
 		Err(error) => {
-			println!("{}", format!("[ERROR] {error}").red());
+			println!("{}", format!("[ERROR] {error}")); // ERROR HANDELING
 			Err(error)
 		}
 	}?;

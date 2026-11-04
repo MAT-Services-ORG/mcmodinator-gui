@@ -8,7 +8,7 @@ pub fn build(mod_info: &mut ModInfo, mod_build: &str, output_path: &String) -> R
 	};
 	let mut zip = ZipWriter::new(
 		File::create(&modfilename).map_err(|error| {
-			println!("{}", format!("[ERROR] {}", error).red());
+			println!("{}", format!("[ERROR] {}", error)); // ERROR HANDELING
 			io::Error::new(error.kind(), error)
 		})?
 	);
@@ -22,16 +22,16 @@ pub fn build(mod_info: &mut ModInfo, mod_build: &str, output_path: &String) -> R
 					SimpleFileOptions::default(),
 				)?;
 				zip.write_all(&data)?;
-				println!("{}", "[INFO] Added icon".blue());
+				println!("{}", "[INFO] Added icon"); // ERROR HANDELING
 			}
 			Err(error) => {
 				if error.kind() == io::ErrorKind::NotFound {
 				
 					println!(
-						"{}", "[WARN] Icon not found at provided path.".yellow(),
+						"{}", "[WARN] Icon not found at provided path.", // ERROR HANDELING
 					);
 				} else {
-					println!("{}", format!("[ERROR] {}", error).red());
+					println!("{}", format!("[ERROR] {}", error)); // ERROR HANDELING
 				}
 			}
 		}
@@ -67,8 +67,8 @@ pub fn build(mod_info: &mut ModInfo, mod_build: &str, output_path: &String) -> R
 		json!({}).as_object().unwrap()
 	).keys() {
 		if !matches!(mod_info.dependency[dependancy]["forge"]["type"].as_str().unwrap_or(""), "required" | "optional" | "incompatible" | "discouraged" | "") {
-			println!("{}", format!("[CAUT] {} is not a conventionnal and can became problematic while mod execution !", mod_info.dependency[dependancy]["forge"]["type"].to_string().as_str()).bright_red());
-			println!("{}", "[HELP] For more informations, go to: https://docs.minecraftforge.net/en/latest/gettingstarted/modfiles/".blue());
+			println!("{}", format!("[CAUT] {} is not a conventionnal and can became problematic while mod execution !", mod_info.dependency[dependancy]["forge"]["type"].to_string().as_str())); // ERROR HANDELING
+			println!("{}", "[HELP] For more informations, go to: https://docs.minecraftforge.net/en/latest/gettingstarted/modfiles/"); // ERROR HANDELING
 		};
 		if !mod_info.dependency[dependancy]["forge"].is_null() {
 			forge_dep.push_str(
@@ -77,7 +77,7 @@ pub fn build(mod_info: &mut ModInfo, mod_build: &str, output_path: &String) -> R
 					mod_info.id, 
 					dependancy,
 					json_to_toml(mod_info.dependency[dependancy]["forge"].clone()).map_err(|_| {
-						println!("{}", "[ERROR] Forge dependency is not a valid JSON object.".red());
+						println!("{}", "[ERROR] Forge dependency is not a valid JSON object."); // ERROR HANDELING
 						std::io::Error::new(std::io::ErrorKind::InvalidData, "Forge dependency is not a valid JSON object.")
 					})?
 				).as_str()
@@ -150,7 +150,7 @@ license="{license}"
 	let mut fab_dep = json!({});
 	if !mod_info.dependency.is_null() {
 		for value in mod_info.dependency.as_object().ok_or_else(|| {
-			println!("{}", "[ERROR] PACK.MCMETA: \"dependencies\" must be a JSON object".red());
+			println!("{}", "[ERROR] PACK.MCMETA: \"dependencies\" must be a JSON object"); // ERROR HANDELING
 			io::Error::new(io::ErrorKind::InvalidData, "\"dependencies\" must be a JSON object")
 		})?.keys() {
 			if !mod_info.dependency[value]["fabric"].is_null() {
@@ -192,11 +192,11 @@ license="{license}"
 	// Finish ZIP
 	match zip.finish() {
 		Ok(_) => {
-			println!("{}", format!("[DONE] Mod created at {modfilename}").green());
+			println!("{}", format!("[DONE] Mod created at {modfilename}")); // ERROR HANDELING
 			Ok(())
 		},
 		Err(error) => {
-			println!("{}", format!("[ERROR] {error}").red());
+			println!("{}", format!("[ERROR] {error}")); // ERROR HANDELING
 			Err(error)
 		}
 	}?;

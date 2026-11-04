@@ -8,14 +8,14 @@ pub fn get() -> Result<ModInfo, Box<dyn std::error::Error>>{
 		} else {
 			format!("Could not read settings.toml: {error}")
 		};
-		println!("{}", format!("[ERROR] {}", message).red());
+		println!("{}", format!("[ERROR] {}", message)); // ERROR HANDELING
 		io::Error::new(error.kind(), message)
 	})?)?; // Use pack.mcmeta on the new parser.
 
 	let info = settings["mod_info"]
 		.as_table()
 		.ok_or_else(|| {
-			println!("{}", "[ERROR] Cannot parse [mod_info]. Check if your syntax is valid.".red());
+			println!("{}", "[ERROR] Cannot parse [mod_info]. Check if your syntax is valid."); // ERROR HANDELING
 			io::Error::new(io::ErrorKind::InvalidData, "cannot parse [mod_info] in settings.toml")
 		})?; 
 	let paths: serde_json::Value = json!({
@@ -37,7 +37,7 @@ pub fn get() -> Result<ModInfo, Box<dyn std::error::Error>>{
 
 	for key in expected_keys {
 		if !info.contains_key(key) {
-			println!("{}", format!("[ERROR] Missing keys in settings: {}", key).red());
+			println!("{}", format!("[ERROR] Missing keys in settings: {}", key)); // ERROR HANDELING
 			return Err(std::io::Error::new(
 				std::io::ErrorKind::InvalidData,
 				"Missing required key in settings",
@@ -49,35 +49,35 @@ pub fn get() -> Result<ModInfo, Box<dyn std::error::Error>>{
 	Ok(ModInfo {
 		id: info["id"].as_str()
 			.ok_or_else(|| {
-				println!("{}", "[ERROR] id must be a string".red());
+				println!("{}", "[ERROR] id must be a string"); // ERROR HANDELING
 				io::Error::new(io::ErrorKind::InvalidData, "id must be a string")
 			})?
 			.to_owned(), 
 		version: info["version"]
 			.as_str()
 			.ok_or_else(|| {
-				println!("{}", "[ERROR] version must be a string or integer".red());
+				println!("{}", "[ERROR] version must be a string or integer"); // ERROR HANDELING
 				io::Error::new(io::ErrorKind::InvalidData, "version must be a string or integer")
 			})?
 			.to_string(), 
 		display_name: info["display_name"]
 			.as_str()
 			.ok_or_else(|| {
-				println!("{}", "[ERROR] display_name must be a string".red());
+				println!("{}", "[ERROR] display_name must be a string"); // ERROR HANDELING
 				io::Error::new(io::ErrorKind::InvalidData, "display_name must be a string")
 			})?
 			.to_string(), 
 		description: info["description"]
 			.as_str()
 			.ok_or_else(|| {
-				println!("{}", "[ERROR] description must be a string".red());
+				println!("{}", "[ERROR] description must be a string"); // ERROR HANDELING
 				io::Error::new(io::ErrorKind::InvalidData, "description must be a string")
 			})?
 			.to_string(), 
 		license: info["license"]
 			.as_str()
 			.ok_or_else(|| {
-				println!("{}", "[ERROR] license must be a string".red());
+				println!("{}", "[ERROR] license must be a string"); // ERROR HANDELING
 				io::Error::new(io::ErrorKind::InvalidData, "license must be a string")
 			})?
 			.to_string(),
@@ -85,7 +85,7 @@ pub fn get() -> Result<ModInfo, Box<dyn std::error::Error>>{
 			toml::Value::String(value) => value.clone(),
 			toml::Value::Integer(value) => value.to_string(),
 			_ => {
-				println!("{}", "[ERROR] forge_version must be a string or integer".red());
+				println!("{}", "[ERROR] forge_version must be a string or integer"); // ERROR HANDELING
 				return Err(std::io::Error::new(
 					std::io::ErrorKind::InvalidData,
 					"forge_version must be a string or integer",
@@ -97,7 +97,7 @@ pub fn get() -> Result<ModInfo, Box<dyn std::error::Error>>{
 			Some(toml::Value::Integer(value)) => value.to_string(),
 			None => String::new(),
 			_ => {
-				println!("{}", "[ERROR] neoforge_version must be a string or integer".red());
+				println!("{}", "[ERROR] neoforge_version must be a string or integer"); // ERROR HANDELING
 				return Err(std::io::Error::new(
 					std::io::ErrorKind::InvalidData,
 					"neoforge_version must be a string or integer",
@@ -108,7 +108,7 @@ pub fn get() -> Result<ModInfo, Box<dyn std::error::Error>>{
 		authors: info["authors"]
 			.as_array()
 			.ok_or_else(||{
-				println!("{}", "[ERROR] authors must be an array".red());
+				println!("{}", "[ERROR] authors must be an array"); // ERROR HANDELING
 				io::Error::new(io::ErrorKind::InvalidData, "authors must be an array")
 			})?
 			.iter()
@@ -116,7 +116,7 @@ pub fn get() -> Result<ModInfo, Box<dyn std::error::Error>>{
 				author
 					.as_str()
 					.ok_or_else(|| {
-						println!("{}", "[ERROR] each author in authors must be a string".red());
+						println!("{}", "[ERROR] each author in authors must be a string"); // ERROR HANDELING
 						io::Error::new(io::ErrorKind::InvalidData, "not a string in authors = [String]")
 					})
 				.map(str::to_owned)
@@ -124,7 +124,7 @@ pub fn get() -> Result<ModInfo, Box<dyn std::error::Error>>{
 			.collect::<Result<Vec<_>, io::Error>>()?,
 		icon: PathBuf::from(paths["icon"].as_str()
 			.ok_or_else(|| {
-				println!("{}", "[ERROR] settings.toml[\"paths\"][\"icon\"] must be a string.".red());
+				println!("{}", "[ERROR] settings.toml[\"paths\"][\"icon\"] must be a string."); // ERROR HANDELING
 				io::Error::new(
 					io::ErrorKind::InvalidData,
 					"settings.toml: paths.icon must be a string",
