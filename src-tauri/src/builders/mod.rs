@@ -1,0 +1,204 @@
+use crate::*;
+
+pub fn build(mod_info: &mut ModInfo, mod_build: &str, output_path: &String) -> Result<(), Box<dyn std::error::Error>> {
+	println!("[INFO] Building mod file...");
+	let modfilename = match mod_build {
+		"true" | "t" | "yes" | "y" => format!("{output_path}/{}-mod.jar", mod_info.id),
+		_ => format!("{output_path}/{mod_build}")
+	};
+	let mut zip = ZipWriter::new(
+		File::create(&modfilename).map_err(|error| {
+			println!("{}", format!("[ERROR] {}", error).red());
+			io::Error::new(error.kind(), error)
+		})?
+	);
+
+	// Icon
+	if let Some(icon_path) = mod_info.paths.get("icon").and_then(|x| x.as_str()) && !icon_path.is_empty() {
+		match fs::read(icon_path) {
+			Ok(data) => {
+				zip.start_file(
+					"icon.png",
+					SimpleFileOptions::default(),
+				)?;
+				zip.write_all(&data)?;
+				println!("{}", "[INFO] Added icon".blue());
+			}
+			Err(error) => {
+				if error.kind() == io::ErrorKind::NotFound {
+				
+					println!(
+						"{}", "[WARN] Icon not found at provided path.".yellow(),
+					);
+				} else {
+					println!("{}", format!("[ERROR] {}", error).red());
+				}
+			}
+		}
+	}
+
+
+	import_folder(mod_info.paths.get("data"), &mut zip, "Datapack Files", "data")?; // Data
+	import_folder(mod_info.paths.get("assets"), &mut zip, "Resourcepack Files", "assets")?; // Assets
+
+	if !mod_info.paths["kubeloader"].is_null() { 
+		import_folder(mod_info.paths["kubeloader"].get("server-js"), &mut zip, "Server Scripts", "contentpacks/server_scripts")?; // server-js
+		import_folder(mod_info.paths["kubeloader"].get("client-js"), &mut zip, "Client Scripts", "contentpacks/client_scripts")?; // client-js
+		import_folder(mod_info.paths["kubeloader"].get("startup-js"), &mut zip, "Startup Scripts", "contentpacks/startup_scripts")?; // startup-js
+		// KUBELOADER metadatas. (Check https://github.com/WhiseNT/kubeloader_wiki-en/wiki/Content-Packs )
+
+		zip.start_file("contentpacks/contentpacks.json", SimpleFileOptions::default())?;
+		zip.write_all(
+			serde_json::to_string(&json!({
+				"id": mod_info.id,
+				"version": mod_info.version,
+				"name": mod_info.display_name,
+				"description": mod_info.description,
+				"authors": mod_info.authors
+			}))?
+			.as_bytes()
+		)?;
+		mod_info.dependency["kubeloader"]["forge"]["versionRange"] = "".into(); 
+		mod_info.dependency["kubeloader"]["fabric"] = "*".into(); 
+	} 
+
+	let mut forge_dep = String::new();
+	for dependancy in mod_info.dependency.as_object().unwrap_or(
+		json!({}).as_object().unwrap()
+	).keys() {
+		if !matches!(mod_info.dependency[dependancy]["forge"]["type"].as_str().unwrap_or(""), "required" | "optional" | "incompatible" | "discouraged" | "") {
+			println!("{}", format!("[CAUT] {} is not a conventionnal and can became problematic while mod execution !", mod_info.dependency[dependancy]["forge"]["type"].to_string().as_str()).bright_red());
+			println!("{}", "[HELP] For more informations, go to: https://docs.minecraftforge.net/en/latest/gettingstarted/modfiles/".blue());
+		};
+		if !mod_info.dependency[dependancy]["forge"].is_null() {
+			forge_dep.push_str(
+				format!(
+					"[[dependencies.{}]]\nmodId=\"{}\"\n{}\n", 
+					mod_info.id, 
+					dependancy,
+					json_to_toml(mod_info.dependency[dependancy]["forge"].clone()).map_err(|_| {
+						println!("{}", "[ERROR] Forge dependency is not a valid JSON object.".red());
+						std::io::Error::new(std::io::ErrorKind::InvalidData, "Forge dependency is not a valid JSON object.")
+					})?
+				).as_str()
+			)
+		}
+	};
+	// Forge MataData
+	if !mod_info.forge_version.is_empty() {
+		zip.start_file("META-INF/mods.toml", SimpleFileOptions::default())?;
+		zip.write_all(format!(
+
+r#"modLoader="lowcodefml"
+loaderVersion="{forge_version}"
+
+license="{license}"
+
+[[mods]]
+	modId="{id}"
+	version="{version}"
+	displayName="{display_name}"
+	authors="{authors}"
+	description="{description}"
+	{logo}
+
+{dependencies}
+"#,
+			forge_version = escape_toml_string(&mod_info.forge_version),
+			license = escape_toml_string(&mod_info.license),
+			id = escape_toml_string(&mod_info.id),
+			version = escape_toml_string(&mod_info.version),
+			display_name = escape_toml_string(&mod_info.display_name),
+			authors = escape_toml_string(&mod_info.authors.join(", ")),
+			description = escape_toml_string(&mod_info.description),
+			logo = if mod_info.icon.is_file() {"logoFile=\"icon.png\""} else {""},
+			dependencies=forge_dep
+		).as_bytes())?; 
+	}
+
+	// NeoForge MetaData
+	if !mod_info.neoforge_version.is_empty() {
+		zip.start_file("META-INF/neoforge.mods.toml", SimpleFileOptions::default())?;
+		zip.write_all(format!(
+r#"modLoader="lowcodefml"
+loaderVersion="{neo_version}" 
+
+license="{license}"
+
+[[mods]]
+	modId="{id}"
+	version="{version}"
+	displayName="{display_name}"
+	authors="{authors}"
+	description="{description}"
+	{logo}
+
+{dependencies}
+"#,
+			neo_version = escape_toml_string(&mod_info.neoforge_version),
+			license = escape_toml_string(&mod_info.license),
+			id = escape_toml_string(&mod_info.id),
+			version = escape_toml_string(&mod_info.version),
+			display_name = escape_toml_string(&mod_info.display_name),
+			authors = escape_toml_string(&mod_info.authors.join(", ")),
+			description = escape_toml_string(&mod_info.description),
+			logo = if mod_info.icon.is_file() {"logoFile=\"icon.png\""} else {""},
+			dependencies=forge_dep 
+		).as_bytes())?;
+	}
+
+	let mut fab_dep = json!({});
+	if !mod_info.dependency.is_null() {
+		for value in mod_info.dependency.as_object().ok_or_else(|| {
+			println!("{}", "[ERROR] PACK.MCMETA: \"dependencies\" must be a JSON object".red());
+			io::Error::new(io::ErrorKind::InvalidData, "\"dependencies\" must be a JSON object")
+		})?.keys() {
+			if !mod_info.dependency[value]["fabric"].is_null() {
+				fab_dep[value] = match &mod_info.dependency[value]["fabric"] {
+					serde_json::Value::Array(ranges) => {
+						serde_json::Value::Array(ranges.clone())
+					}
+					serde_json::Value::String(range) => {
+						serde_json::Value::String(range.clone())
+					}
+					_ => {
+						return Err(std::io::Error::new(
+							std::io::ErrorKind::InvalidData,
+							format!("Fabric dependency '{value}' must be a string or an array"),
+						)
+						.into());
+					}
+				};
+			}
+		}
+	};
+	let _ = serde_json::from_str::<serde_json::Value>("mod_info");
+	// Fabric Metadata
+	let mut fabric = json!({
+		"schemaVersion": 1,
+		"id": mod_info.id,
+		"version": mod_info.version,
+		"name": mod_info.display_name,
+		"description": mod_info.description,
+		"authors": mod_info.authors,
+		"license": mod_info.license,
+		"depends": fab_dep 
+	});
+	if mod_info.icon.is_file() {fabric["icon"] = serde_json::Value::String(mod_info.icon.to_str().unwrap().to_string())}
+
+	zip.start_file("fabric.mod.json", SimpleFileOptions::default())?;
+	zip.write_all(serde_json::to_string(&fabric)?.as_bytes())?;
+
+	// Finish ZIP
+	match zip.finish() {
+		Ok(_) => {
+			println!("{}", format!("[DONE] Mod created at {modfilename}").green());
+			Ok(())
+		},
+		Err(error) => {
+			println!("{}", format!("[ERROR] {error}").red());
+			Err(error)
+		}
+	}?;
+	Ok(())
+}
